@@ -14,7 +14,7 @@ Mobile app captures a photo, user picks a predefined task, app sends `{timestamp
 - Cross-platform foundation (Flutter) with Android APK as v1 delivery target
 - Reliable delivery over Tailscale with bearer-token auth
 - Offline resilience via local outbox queue with auto-retry
-- Develop and build on Linux; run receiver on Windows
+- Develop and build on Linux or macOS; run receiver on Windows
 
 ## Non-Goals (v1)
 
@@ -57,9 +57,9 @@ Mobile app captures a photo, user picks a predefined task, app sends `{timestamp
 
 Bind server to Tailscale interface only. Config: watch folder path, bearer token, port (default `8787`).
 
-### Linux role
+### Linux / macOS dev role
 
-Flutter SDK + Android toolchain for development and APK builds. No Linux desktop app in v1.
+Flutter SDK + Android toolchain for development and APK builds on **Linux or macOS**. No desktop app target in v1. Same repo clones on both machines; only Task 1 install steps differ by OS.
 
 ## Key Decisions
 
@@ -190,9 +190,9 @@ Outbox UI: badge on home screen; tap to view pending items, manual retry, or del
 | Tailscale down | Queue only, retry when connectivity returns |
 | App killed mid-upload | Outbox item persists, retry on next launch |
 
-## Flutter Linux Dev Setup
+## Flutter Dev Setup (Linux or macOS)
 
-Implementation phase will install and verify on the developer's Linux machine:
+Implementation phase installs and verifies on whichever dev machine you use (Linux PC or macOS laptop). See plan Task 1 for OS-specific commands; goals are identical:
 
 1. Install Flutter SDK (stable channel)
 2. Run `flutter doctor` and resolve Android toolchain gaps
@@ -205,11 +205,13 @@ Implementation phase will install and verify on the developer's Linux machine:
 
 Prerequisites to verify: `git`, `curl`, `unzip`, JDK 17, Android SDK, `adb`.
 
+**macOS:** `brew` + `openjdk@17` or Android Studio; shell profile usually `~/.zshrc`.  
+**Linux:** `apt` packages per plan Task 1; shell profile usually `~/.bashrc`.
+
 Project bootstrap:
 
 ```
-flutter create chup_anh_excel
-cd chup_anh_excel
+flutter create --org com.chupanhexcel --project-name chup_anh_excel .
 # add dependencies: camera, http, sqflite, path_provider
 ```
 

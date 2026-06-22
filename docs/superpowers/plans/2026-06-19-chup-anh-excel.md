@@ -2,13 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build an Android Flutter app that captures photos, picks a task, and sends `{timestamp}.jpg` + `{timestamp}.md` to a Windows Python receiver over Tailscale; include Flutter dev environment setup on Linux.
+**Goal:** Build an Android Flutter app that captures photos, picks a task, and sends `{timestamp}.jpg` + `{timestamp}.md` to a Windows Python receiver over Tailscale; include Flutter dev environment setup on **Linux or macOS** (either dev machine can build APK and run tests).
 
 **Architecture:** Flutter mobile app with camera capture, task picker, SQLite outbox, and HTTP upload client. Python FastAPI receiver on Windows serves `GET /tasks` from `tasks.yaml` and accepts `POST /upload` with bearer auth, writing atomically to a watch folder.
 
 **Tech Stack:** Flutter (stable), `camera`, `http`, `sqflite`, `path_provider`, `shared_preferences`; Python 3.11+, FastAPI, uvicorn, PyYAML; Tailscale; Android JDK 17.
 
 ## Global Constraints
+
+- **Dev machines:** Linux PC or macOS laptop — same repo, same Flutter/Android toolchain goals; only OS-specific install steps differ (Task 1)
+- **Deploy target:** Windows PC runs Python receiver + watch folder (Tasks 13–14); receiver tests can run on any dev machine
+- **Repo root:** All commands assume you are in the git repo root unless noted. Use `cd "$(git rev-parse --show-toplevel)"` when unsure
 
 - File pair: `{timestamp}.jpg` + `{timestamp}.md` (same basename)
 - Timestamp format: local device time, `YYYYMMDD_HHMMSS`; on collision append `_1`, `_2`, etc.
@@ -25,33 +29,32 @@
 ## File Structure
 
 ```
-ChupAnhExcel/
-├── chup_anh_excel/                    # Flutter app
-│   ├── lib/
-│   │   ├── main.dart
-│   │   ├── models/task.dart
-│   │   ├── services/
-│   │   │   ├── basename_generator.dart
-│   │   │   ├── markdown_builder.dart
-│   │   │   ├── settings_store.dart
-│   │   │   ├── api_client.dart
-│   │   │   ├── outbox_queue.dart
-│   │   │   ├── task_repository.dart
-│   │   │   ├── upload_service.dart
-│   │   │   └── retry_worker.dart
-│   │   ├── screens/
-│   │   │   ├── camera_screen.dart
-│   │   │   ├── task_picker_screen.dart
-│   │   │   ├── settings_screen.dart
-│   │   │   └── outbox_screen.dart
-│   │   └── widgets/outbox_badge.dart
-│   ├── assets/tasks.json
-│   ├── test/services/
-│   │   ├── basename_generator_test.dart
-│   │   ├── markdown_builder_test.dart
-│   │   └── api_client_test.dart
-│   └── pubspec.yaml
-└── receiver/                          # Windows Python server
+ChupAnhExcel/                          # Flutter app at repo root
+├── lib/
+│   ├── main.dart
+│   ├── models/task.dart
+│   ├── services/
+│   │   ├── basename_generator.dart
+│   │   ├── markdown_builder.dart
+│   │   ├── settings_store.dart
+│   │   ├── api_client.dart
+│   │   ├── outbox_queue.dart
+│   │   ├── task_repository.dart
+│   │   ├── upload_service.dart
+│   │   └── retry_worker.dart
+│   ├── screens/
+│   │   ├── camera_screen.dart
+│   │   ├── task_picker_screen.dart
+│   │   ├── settings_screen.dart
+│   │   └── outbox_screen.dart
+│   └── widgets/outbox_badge.dart
+├── assets/tasks.json
+├── test/services/
+│   ├── basename_generator_test.dart
+│   ├── markdown_builder_test.dart
+│   └── api_client_test.dart
+├── pubspec.yaml
+└── receiver/                          # Python server (dev/test Linux/macOS; deploy Windows)
     ├── main.py
     ├── config.yaml.example
     ├── tasks.yaml
@@ -61,16 +64,52 @@ ChupAnhExcel/
 
 ---
 
-### Task 1: Flutter Linux Dev Environment
+### Task 1: Flutter Dev Environment (Linux or macOS)
+
+**Status:** macOS done (2026-06-19) · Linux pending
 
 **Files:**
-- Create: `~/.bashrc` (append PATH entry)
-- Create: `~/development/flutter/` (SDK install location)
+- Create: shell profile append (`~/.bashrc` on Linux, `~/.zshrc` on macOS — or `~/.bash_profile` if you use bash on Mac)
+- Create: `~/development/flutter/` (SDK install location; same path on both machines)
 
 **Interfaces:**
-- Produces: working `flutter` and `adb` commands on PATH
+- Produces: working `flutter` and `adb` commands on PATH on **whichever machine you are on**
+
+Pick **one** OS block below. Repeat on the other machine later if you switch laptops — same repo, same `ANDROID_HOME` layout.
+
+#### macOS (done)
+
+- [x] **Step 0: Detect OS** — `Darwin`
+- [x] **Step 1: Prerequisites** — Xcode CLI tools present; system `git`/`curl`/`unzip`; JDK 21 on PATH (no `openjdk@17` brew install needed)
+- [x] **Step 2: Flutter SDK** — `~/development/flutter` stable 3.44.2; PATH in `~/.zshrc`
+- [x] **Step 3: Android SDK** — `~/Android/Sdk` via cmdline-tools; `platform-tools`, `platforms;android-34`, `platforms;android-36`, `build-tools;34.0.0`, `build-tools;28.0.3`; licenses accepted
+- [x] **Step 4: flutter doctor** — Flutter ✓, Android toolchain ✓ (Xcode/Chrome warnings OK for Android-only v1)
+- [ ] **Step 5: adb device** — `adb` works; no phone plugged in yet (plug in + USB debugging when ready)
+- [ ] **Step 6: Commit** — skipped (user did not request)
+
+#### Linux (pending)
+
+- [ ] **Step 0: Detect OS**
+- [ ] **Step 1: Install system prerequisites**
+- [ ] **Step 2: Install Flutter SDK**
+- [ ] **Step 3: Install Android command-line tools**
+- [ ] **Step 4: Run flutter doctor and fix remaining issues**
+- [ ] **Step 5: Verify device connection**
+- [ ] **Step 6: Commit environment notes**
+
+---
+
+**Reference commands** (repeat on Linux when on PC):
+
+- [ ] **Step 0: Detect OS**
+
+```bash
+uname -s   # Linux → follow Linux block; Darwin → follow macOS block
+```
 
 - [ ] **Step 1: Install system prerequisites**
+
+**Linux:**
 
 ```bash
 sudo apt-get update
@@ -78,15 +117,35 @@ sudo apt-get install -y git curl unzip xz-utils zip libglu1-mesa clang cmake nin
 java -version
 ```
 
-Expected: `openjdk version "17.x.x"`
+**macOS:**
 
-- [ ] **Step 2: Install Flutter SDK**
+```bash
+xcode-select --install   # skip if already installed
+brew install git curl unzip openjdk@17
+echo 'export PATH="/opt/homebrew/opt/openjdk@17/bin:$PATH"' >> ~/.zshrc
+export PATH="/opt/homebrew/opt/openjdk@17/bin:$PATH"
+java -version
+```
+
+Expected on both: `openjdk version "17.x.x"`
+
+- [ ] **Step 2: Install Flutter SDK** (identical on Linux and macOS)
 
 ```bash
 mkdir -p ~/development
 cd ~/development
 git clone https://github.com/flutter/flutter.git -b stable --depth 1
-echo 'export PATH="$HOME/development/flutter/bin:$PATH"' >> ~/.bashrc
+```
+
+Append to your shell profile (`~/.bashrc` on Linux, `~/.zshrc` on macOS):
+
+```bash
+export PATH="$HOME/development/flutter/bin:$PATH"
+```
+
+Then reload and verify:
+
+```bash
 export PATH="$HOME/development/flutter/bin:$PATH"
 flutter --version
 ```
@@ -95,20 +154,37 @@ Expected: Flutter stable version printed (3.x)
 
 - [ ] **Step 3: Install Android command-line tools**
 
+**Linux:**
+
 ```bash
 mkdir -p ~/Android/Sdk/cmdline-tools
 cd /tmp
 curl -fsSL -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
 unzip -q commandlinetools.zip -d ~/Android/Sdk/cmdline-tools
 mv ~/Android/Sdk/cmdline-tools/cmdline-tools ~/Android/Sdk/cmdline-tools/latest
-echo 'export ANDROID_HOME="$HOME/Android/Sdk"' >> ~/.bashrc
-echo 'export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"' >> ~/.bashrc
+```
+
+**macOS:**
+
+```bash
+mkdir -p ~/Android/Sdk/cmdline-tools
+cd /tmp
+curl -fsSL -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip
+unzip -q commandlinetools.zip -d ~/Android/Sdk/cmdline-tools
+mv ~/Android/Sdk/cmdline-tools/cmdline-tools ~/Android/Sdk/cmdline-tools/latest
+```
+
+**Both** — append to shell profile, then export in current session:
+
+```bash
 export ANDROID_HOME="$HOME/Android/Sdk"
 export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
 yes | sdkmanager --licenses
-sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+sdkmanager "platform-tools" "platforms;android-34" "platforms;android-36" "build-tools;34.0.0" "build-tools;28.0.3"
 flutter config --android-sdk "$ANDROID_HOME"
 ```
+
+**macOS alternative:** Install [Android Studio](https://developer.android.com/studio) instead of Step 3 CLI flow; point Flutter at its SDK (`~/Library/Android/sdk` on Apple Silicon). Skip duplicate SDK install if Studio already provides one.
 
 - [ ] **Step 4: Run flutter doctor and fix remaining issues**
 
@@ -116,7 +192,7 @@ flutter config --android-sdk "$ANDROID_HOME"
 flutter doctor -v
 ```
 
-Expected: Flutter, Android toolchain, Chrome (optional) show checkmarks. Accept any remaining license prompts with `flutter doctor --android-licenses`.
+Expected: Flutter + Android toolchain show checkmarks. Accept license prompts with `flutter doctor --android-licenses`. Chrome / VS Code are optional.
 
 - [ ] **Step 5: Verify device connection (phone plugged in, USB debugging on)**
 
@@ -126,10 +202,12 @@ adb devices
 
 Expected: device serial listed as `device` (not `unauthorized`)
 
-- [ ] **Step 6: Commit environment notes**
+**macOS note:** First USB attach may prompt "Allow accessory" on phone; trust the Mac if asked.
+
+- [ ] **Step 6: Commit environment notes** (after plan doc exists in repo)
 
 ```bash
-cd /home/lamdev/ChupAnhExcel
+cd "$(git rev-parse --show-toplevel)"
 git add docs/superpowers/plans/2026-06-19-chup-anh-excel.md
 git commit -m "docs: add ChupAnhExcel implementation plan"
 ```
@@ -138,24 +216,25 @@ git commit -m "docs: add ChupAnhExcel implementation plan"
 
 ### Task 2: Flutter Project Scaffold
 
+**Status:** done (macOS, 2026-06-19)
+
 **Files:**
-- Create: `chup_anh_excel/` (entire Flutter project via `flutter create`)
-- Modify: `chup_anh_excel/pubspec.yaml`
-- Create: `chup_anh_excel/assets/tasks.json`
+- Create: repo root Flutter project via `flutter create .`
+- Modify: `pubspec.yaml`
+- Create: `assets/tasks.json`
 
 **Interfaces:**
 - Produces: runnable empty Flutter app with dependencies declared
 
-- [ ] **Step 1: Create project**
+- [x] **Step 1: Create project**
 
 ```bash
-cd /home/lamdev/ChupAnhExcel
-flutter create --org com.chupanhexcel --project-name chup_anh_excel chup_anh_excel
-cd chup_anh_excel
+cd "$(git rev-parse --show-toplevel)"
+flutter create --org com.chupanhexcel --project-name chup_anh_excel .
 flutter pub get
 ```
 
-- [ ] **Step 2: Add dependencies to `pubspec.yaml`**
+- [x] **Step 2: Add dependencies to `pubspec.yaml`**
 
 Replace the `dependencies:` and `dev_dependencies:` sections:
 
@@ -183,9 +262,9 @@ flutter:
     - assets/tasks.json
 ```
 
-- [ ] **Step 3: Create bundled fallback tasks**
+- [x] **Step 3: Create bundled fallback tasks**
 
-Create `chup_anh_excel/assets/tasks.json`:
+Create `assets/tasks.json`:
 
 ```json
 {
@@ -204,7 +283,7 @@ Create `chup_anh_excel/assets/tasks.json`:
 }
 ```
 
-- [ ] **Step 4: Verify project runs**
+- [x] **Step 4: Verify project runs**
 
 ```bash
 flutter analyze
@@ -216,24 +295,25 @@ Expected: no issues, 0 tests (placeholder) pass
 - [ ] **Step 5: Commit**
 
 ```bash
-git add chup_anh_excel/
-git commit -m "feat: scaffold Flutter project with dependencies"
+git add git commit -m "feat: scaffold Flutter project with dependencies"
 ```
 
 ---
 
 ### Task 3: Basename Generator
 
+**Status:** done (2026-06-19)
+
 **Files:**
-- Create: `chup_anh_excel/lib/services/basename_generator.dart`
-- Create: `chup_anh_excel/test/services/basename_generator_test.dart`
+- Create: `lib/services/basename_generator.dart`
+- Create: `test/services/basename_generator_test.dart`
 
 **Interfaces:**
 - Produces: `String generateBasename({DateTime? now, Set<String>? existing})`
 
 - [ ] **Step 1: Write the failing test**
 
-Create `chup_anh_excel/test/services/basename_generator_test.dart`:
+Create `test/services/basename_generator_test.dart`:
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
@@ -268,7 +348,7 @@ void main() {
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-cd /home/lamdev/ChupAnhExcel/chup_anh_excel
+cd "$(git rev-parse --show-toplevel)"
 flutter test test/services/basename_generator_test.dart
 ```
 
@@ -276,7 +356,7 @@ Expected: FAIL — `generateBasename` not defined
 
 - [ ] **Step 3: Write minimal implementation**
 
-Create `chup_anh_excel/lib/services/basename_generator.dart`:
+Create `lib/services/basename_generator.dart`:
 
 ```dart
 String generateBasename({DateTime? now, Set<String>? existing}) {
@@ -320,10 +400,12 @@ git commit -m "feat: add basename generator with collision handling"
 
 ### Task 4: Markdown Builder
 
+**Status:** done (2026-06-19)
+
 **Files:**
-- Create: `chup_anh_excel/lib/models/task.dart`
-- Create: `chup_anh_excel/lib/services/markdown_builder.dart`
-- Create: `chup_anh_excel/test/services/markdown_builder_test.dart`
+- Create: `lib/models/task.dart`
+- Create: `lib/services/markdown_builder.dart`
+- Create: `test/services/markdown_builder_test.dart`
 
 **Interfaces:**
 - Produces: `class Task { final String id; final String label; final String instructions; }`
@@ -331,7 +413,7 @@ git commit -m "feat: add basename generator with collision handling"
 
 - [ ] **Step 1: Write the failing test**
 
-Create `chup_anh_excel/test/services/markdown_builder_test.dart`:
+Create `test/services/markdown_builder_test.dart`:
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
@@ -366,7 +448,7 @@ Expected: FAIL
 
 - [ ] **Step 3: Write minimal implementation**
 
-Create `chup_anh_excel/lib/models/task.dart`:
+Create `lib/models/task.dart`:
 
 ```dart
 class Task {
@@ -396,7 +478,7 @@ class Task {
 }
 ```
 
-Create `chup_anh_excel/lib/services/markdown_builder.dart`:
+Create `lib/services/markdown_builder.dart`:
 
 ```dart
 import '../models/task.dart';
@@ -425,8 +507,10 @@ git commit -m "feat: add Task model and markdown builder"
 
 ### Task 5: Settings Store
 
+**Status:** done (2026-06-20)
+
 **Files:**
-- Create: `chup_anh_excel/lib/services/settings_store.dart`
+- Create: `lib/services/settings_store.dart`
 
 **Interfaces:**
 - Produces: `class AppSettings { String host; int port; String token; }`
@@ -434,7 +518,7 @@ git commit -m "feat: add Task model and markdown builder"
 
 - [ ] **Step 1: Implement settings store**
 
-Create `chup_anh_excel/lib/services/settings_store.dart`:
+Create `lib/services/settings_store.dart`:
 
 ```dart
 import 'package:shared_preferences/shared_preferences.dart';
@@ -505,9 +589,11 @@ git commit -m "feat: add settings store for PC connection"
 
 ### Task 6: API Client
 
+**Status:** done (2026-06-20)
+
 **Files:**
-- Create: `chup_anh_excel/lib/services/api_client.dart`
-- Create: `chup_anh_excel/test/services/api_client_test.dart`
+- Create: `lib/services/api_client.dart`
+- Create: `test/services/api_client_test.dart`
 
 **Interfaces:**
 - Consumes: `AppSettings`, `Task`
@@ -516,7 +602,7 @@ git commit -m "feat: add settings store for PC connection"
 
 - [ ] **Step 1: Write the failing test**
 
-Create `chup_anh_excel/test/services/api_client_test.dart`:
+Create `test/services/api_client_test.dart`:
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
@@ -619,7 +705,7 @@ Expected: FAIL — `ApiClient` not defined
 
 - [ ] **Step 3: Write minimal implementation**
 
-Create `chup_anh_excel/lib/services/api_client.dart`:
+Create `lib/services/api_client.dart`:
 
 ```dart
 import 'dart:convert';
@@ -717,8 +803,10 @@ git commit -m "feat: add API client for tasks and upload"
 
 ### Task 7: Outbox Queue (SQLite)
 
+**Status:** done (2026-06-20)
+
 **Files:**
-- Create: `chup_anh_excel/lib/services/outbox_queue.dart`
+- Create: `lib/services/outbox_queue.dart`
 
 **Interfaces:**
 - Produces: `class OutboxItem { int id; String basename; String imagePath; String mdContent; DateTime createdAt; int attempts; String? lastError; bool paused; }`
@@ -726,7 +814,7 @@ git commit -m "feat: add API client for tasks and upload"
 
 - [ ] **Step 1: Implement outbox queue**
 
-Create `chup_anh_excel/lib/services/outbox_queue.dart`:
+Create `lib/services/outbox_queue.dart`:
 
 ```dart
 import 'package:path/path.dart' as p;
@@ -889,8 +977,10 @@ git commit -m "feat: add SQLite outbox queue"
 
 ### Task 8: Task Repository
 
+**Status:** done (2026-06-20)
+
 **Files:**
-- Create: `chup_anh_excel/lib/services/task_repository.dart`
+- Create: `lib/services/task_repository.dart`
 
 **Interfaces:**
 - Consumes: `ApiClient`, `AppSettings`, bundled `assets/tasks.json`
@@ -898,7 +988,7 @@ git commit -m "feat: add SQLite outbox queue"
 
 - [ ] **Step 1: Implement task repository with fallback**
 
-Create `chup_anh_excel/lib/services/task_repository.dart`:
+Create `lib/services/task_repository.dart`:
 
 ```dart
 import 'dart:convert';
@@ -947,9 +1037,11 @@ git commit -m "feat: add task repository with bundled fallback"
 
 ### Task 9: Upload Service + Retry Worker
 
+**Status:** done (2026-06-20)
+
 **Files:**
-- Create: `chup_anh_excel/lib/services/upload_service.dart`
-- Create: `chup_anh_excel/lib/services/retry_worker.dart`
+- Create: `lib/services/upload_service.dart`
+- Create: `lib/services/retry_worker.dart`
 
 **Interfaces:**
 - Consumes: `ApiClient`, `OutboxQueue`, `SettingsStore`, `generateBasename`, `buildMarkdown`
@@ -958,7 +1050,7 @@ git commit -m "feat: add task repository with bundled fallback"
 
 - [ ] **Step 1: Implement upload service**
 
-Create `chup_anh_excel/lib/services/upload_service.dart`:
+Create `lib/services/upload_service.dart`:
 
 ```dart
 import 'dart:io';
@@ -1069,7 +1161,7 @@ class UploadService {
 
 - [ ] **Step 2: Implement retry worker**
 
-Create `chup_anh_excel/lib/services/retry_worker.dart`:
+Create `lib/services/retry_worker.dart`:
 
 ```dart
 import 'dart:async';
@@ -1110,8 +1202,10 @@ git commit -m "feat: add upload service and retry worker"
 
 ### Task 10: Settings Screen
 
+**Status:** done (2026-06-20)
+
 **Files:**
-- Create: `chup_anh_excel/lib/screens/settings_screen.dart`
+- Create: `lib/screens/settings_screen.dart`
 
 **Interfaces:**
 - Consumes: `SettingsStore`, `ApiClient`
@@ -1119,7 +1213,7 @@ git commit -m "feat: add upload service and retry worker"
 
 - [ ] **Step 1: Implement settings screen**
 
-Create `chup_anh_excel/lib/screens/settings_screen.dart`:
+Create `lib/screens/settings_screen.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
@@ -1256,10 +1350,12 @@ git commit -m "feat: add settings screen"
 
 ### Task 11: Camera + Task Picker Screens
 
+**Status:** done (2026-06-20)
+
 **Files:**
-- Create: `chup_anh_excel/lib/screens/camera_screen.dart`
-- Create: `chup_anh_excel/lib/screens/task_picker_screen.dart`
-- Modify: `chup_anh_excel/android/app/src/main/AndroidManifest.xml`
+- Create: `lib/screens/camera_screen.dart`
+- Create: `lib/screens/task_picker_screen.dart`
+- Modify: `android/app/src/main/AndroidManifest.xml`
 
 **Interfaces:**
 - Consumes: `UploadService`, `TaskRepository`, `SettingsStore`
@@ -1267,7 +1363,7 @@ git commit -m "feat: add settings screen"
 
 - [ ] **Step 1: Add Android camera permission**
 
-In `chup_anh_excel/android/app/src/main/AndroidManifest.xml`, before `<application>`:
+In `android/app/src/main/AndroidManifest.xml`, before `<application>`:
 
 ```xml
 <uses-permission android:name="android.permission.CAMERA" />
@@ -1276,7 +1372,7 @@ In `chup_anh_excel/android/app/src/main/AndroidManifest.xml`, before `<applicati
 
 - [ ] **Step 2: Create task picker screen**
 
-Create `chup_anh_excel/lib/screens/task_picker_screen.dart`:
+Create `lib/screens/task_picker_screen.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
@@ -1320,7 +1416,7 @@ class TaskPickerScreen extends StatelessWidget {
 
 - [ ] **Step 3: Create camera screen**
 
-Create `chup_anh_excel/lib/screens/camera_screen.dart` with:
+Create `lib/screens/camera_screen.dart` with:
 - `CameraController` init on back camera
 - Shutter button → capture to temp file
 - Preview dialog: Retake / Use photo
@@ -1349,10 +1445,12 @@ git commit -m "feat: add camera and task picker screens"
 
 ### Task 12: Outbox UI + App Wiring
 
+**Status:** done (2026-06-20)
+
 **Files:**
-- Create: `chup_anh_excel/lib/screens/outbox_screen.dart`
-- Create: `chup_anh_excel/lib/widgets/outbox_badge.dart`
-- Modify: `chup_anh_excel/lib/main.dart`
+- Create: `lib/screens/outbox_screen.dart`
+- Create: `lib/widgets/outbox_badge.dart`
+- Modify: `lib/main.dart`
 
 **Interfaces:**
 - Consumes: all services
@@ -1402,7 +1500,7 @@ git commit -m "feat: wire app shell with outbox UI and retry worker"
 
 ---
 
-### Task 13: Python Receiver (Windows)
+### Task 13: Python Receiver (develop on Linux/macOS, deploy on Windows)
 
 **Files:**
 - Create: `receiver/main.py`
@@ -1517,12 +1615,12 @@ if __name__ == "__main__":
 
 `receiver/tests/test_receiver.py` — use `httpx.AsyncClient` + `ASGITransport` to test 401 without token, 200 with token on `/tasks`, upload writes both files.
 
-- [ ] **Step 6: Run receiver tests**
+- [ ] **Step 6: Run receiver tests** (Linux or macOS dev machine)
 
 ```bash
-cd /home/lamdev/ChupAnhExcel/receiver
+cd "$(git rev-parse --show-toplevel)/receiver"
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate   # same on Linux and macOS
 pip install -r requirements.txt
 pytest tests/ -v
 ```
@@ -1546,7 +1644,9 @@ git commit -m "feat: add Python FastAPI receiver"
 **Interfaces:**
 - Consumes: full app + receiver
 
-- [ ] **Step 1: Start receiver on Windows**
+**Where:** Steps 1–3 need Windows receiver + Tailscale. Steps 4–5 run on Linux or macOS dev machine (or switch machines via git).
+
+- [ ] **Step 1: Start receiver on Windows** (deploy target only — not Linux/macOS)
 
 Copy `receiver/` to Windows PC. Create `config.yaml` from example with real Tailscale IP, token, watch folder. Run:
 
@@ -1570,10 +1670,10 @@ Capture photo → pick task → verify snackbar `Sent` → confirm `{basename}.j
 
 Stop receiver → capture → expect `Queued` → restart receiver → within 30s outbox clears.
 
-- [ ] **Step 5: Build release APK**
+- [ ] **Step 5: Build release APK** (Linux or macOS)
 
 ```bash
-cd /home/lamdev/ChupAnhExcel/chup_anh_excel
+cd "$(git rev-parse --show-toplevel)"
 flutter build apk --release
 ```
 
@@ -1597,7 +1697,7 @@ git commit -am "fix: address E2E issues found during manual test"
 - [x] SQLite outbox + 30s retry → Tasks 7, 9, 12
 - [x] 401 pause → Task 9
 - [x] Settings screen → Task 10
-- [x] Flutter Linux setup → Task 1
+- [x] Flutter Linux/macOS setup → Task 1
 - [x] Android APK → Tasks 1, 14
 - [x] Python receiver on Windows → Task 13
 - [x] Atomic file write on PC → Task 13

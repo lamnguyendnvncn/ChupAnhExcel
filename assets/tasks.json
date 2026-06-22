@@ -1,0 +1,14 @@
+{
+  "tasks": [
+    {
+      "id": "extract-excel",
+      "label": "Extract table to Excel",
+      "instructions": "Read the attached image. Extract all table data into a structured format.\nPreserve column headers. Output as CSV-ready data."
+    },
+    {
+      "id": "summarize-receipt",
+      "label": "Summarize receipt",
+      "instructions": "Read the attached image. List items, prices, and total."
+    }
+  ]
+}
